@@ -12,8 +12,6 @@
             List<string> inputLines = Input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).ToList();
 
             List<Vector2Int> inputPoints = new List<Vector2Int>();
-            //List<int> foldAlongX = new List<int>();
-            //List<int> foldAlongY = new List<int>();
             List<Fold> folds = new List<Fold>();
             foreach (string inputLine in inputLines)
             {
@@ -52,47 +50,6 @@
                 }
             }
 
-            /*
-            foreach (Fold fold in folds)
-            {
-                foreach (Vector2Int point in inputPoints)
-                {
-                    if (fold.XDirection)
-                    {
-                        if (point.X > fold.Coordinate)
-                        {
-                            point.X -= 2 * (point.X - fold.Coordinate);
-                        }
-                    }
-                    else
-                    {
-                        if (point.Y > fold.Coordinate)
-                        {
-                            point.Y -= 2 * (point.Y - fold.Coordinate);
-                        }
-                    }
-                }
-                
-            }
-            */
-            /*
-            for (int i = 0; i <= inputPoints.Max(point => point.X); i++)
-            {
-                for (int j = 0; j <= inputPoints.Max(point => point.Y); j++)
-                {
-                    if (inputPoints.Any(point => point == new Vector2Int(i, j)))
-                    {
-                        Console.Write('*');
-                    }
-                    else
-                    {
-                        Console.Write(' ');
-                    }
-                }
-                Console.WriteLine();
-            }
-            */
-
             return inputPoints.Distinct().Count().ToString();
         }
 
@@ -101,8 +58,6 @@
             List<string> inputLines = Input.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).ToList();
 
             List<Vector2Int> inputPoints = new List<Vector2Int>();
-            //List<int> foldAlongX = new List<int>();
-            //List<int> foldAlongY = new List<int>();
             List<Fold> folds = new List<Fold>();
             foreach (string inputLine in inputLines)
             {
