@@ -68,24 +68,27 @@
             {
                 var parts = inputLine.Split('-');
 
-                if (nodes.All(node => node.Name != parts[0]))
+                for (int i = 0; i < parts.Length; i++)
                 {
-                    nodes.Add(new Node
+                    if (nodes.All(node => node.Name != parts[i]))
                     {
-                        Name = parts[0],
-                        IsBig = char.IsUpper(parts[0][0])
-                    });
-                }
+                        nodes.Add(new Node
+                        {
+                            Name = parts[i],
+                            IsBig = char.IsUpper(parts[i][0])
+                        });
 
-                if (nodes.All(node => node.Name != parts[1]))
-                {
-                    nodes.Add(new Node
-                    {
-                        Name = parts[1],
-                        IsBig = char.IsUpper(parts[1][0])
-                    });
+                        if (parts[i] == "start")
+                        {
+                            nodes.Last().Id = 0;
+                        }
+                        else if (parts[i] == "end")
+                        {
+                            nodes.Last().Id = int.MaxValue;
+                        }
+                    }
                 }
-
+                
                 nodes.First(node => node.Name == parts[0]).Connections.Add(nodes.First(node => node.Name == parts[1]));
                 nodes.First(node => node.Name == parts[1]).Connections.Add(nodes.First(node => node.Name == parts[0]));
             }
@@ -97,17 +100,18 @@
                 nodes.First(node => node.Name == "start")
             });
 
-            while (paths.Any(path => path.Last().Name != "end"))
+            while (paths.Any(path => path.Last().Id != int.MaxValue))
             {
-                foreach (List<Node> path in paths.Where(path => path.Last().Name != "end").ToList())
+                foreach (List<Node> path in paths.Where(path => path.Last().Id != int.MaxValue).ToList())
                 {
                     paths.Remove(path);
-                    foreach (Node node in path.Last().Connections.Where(connectionNode => connectionNode.Name != "start" &&
+                    foreach (Node node in path.Last().Connections.Where(connectionNode => connectionNode.Id != 0 &&
                                                                         (connectionNode.IsBig || 
-                                                                      (path.Where(node => !node.IsBig).GroupBy(node => node.Name).All(grouping => grouping.Count() != 2)) || 
-                                                                      path.All(otherNodes => otherNodes.Name != connectionNode.Name))))
+                                                                      (path.Where(node => !node.IsBig).GroupBy(node => node.Id).All(grouping => grouping.Count() != 2)) || 
+                                                                      path.All(otherNodes => otherNodes.Id != connectionNode.Id))))
                     {
-                        paths.Add(new List<Node>(path) { node });
+                        var newPath = new List<Node>(path) { node };
+                        paths.Add(newPath);
                     }
                 }
             }
@@ -118,6 +122,16 @@
 
     public class Node
     {
+        private static int idIndex = 1;
+
+        public Node()
+        {
+            Id = idIndex;
+            idIndex++;
+        }
+
+        public int Id { get; set; }
+
         public string Name { get; set; }
 
         public bool IsBig { get; set; }
