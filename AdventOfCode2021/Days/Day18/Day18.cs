@@ -64,16 +64,6 @@
                 }
             }
 
-            /* test exploding
-            foreach (DoubleValue snailFishNumber in snailFishNumbers)
-            {
-                Reduce(snailFishNumber);
-                Console.WriteLine(snailFishNumber.ToString());
-            }
-
-            return string.Empty;
-            */
-
             // Start adding
             DoubleValue total = snailFishNumbers[0];
             VerifyTree(total);
@@ -81,14 +71,9 @@
             for (int i = 1; i < snailFishNumbers.Count; i++)
             {
                 total = Add(total, snailFishNumbers[i]);
-                VerifyTree(total);
                 Console.Write("After addition: ");
                 Console.WriteLine(total.ToString());
 
-                //string startString = total.ToString();
-                //Reduce(total);
-                //Console.Write("After reduction: ");
-                //Console.WriteLine(total.ToString());
                 bool change = true;
                 while (change)
                 {
@@ -110,14 +95,6 @@
                     }
                 }
 
-                /*
-                while (Reduce(total))
-                {
-                    //startString = total.ToString();
-                    //Console.Write("After reduction:");
-                    //Console.WriteLine(total.ToString());
-                }
-                */
                 Console.Write("After reduction:");
                 Console.WriteLine(total.ToString());
             }
@@ -201,41 +178,6 @@
 
         private void Explode(DoubleValue value)
         {
-            /*
-            bool leftNull = false;
-            bool rightNull = false;
-
-            DoubleValue leftCurrentValue = value.Parent;
-            while (leftCurrentValue != null && !(leftCurrentValue.Left is SingleValue))
-            {
-                leftCurrentValue = leftCurrentValue.Parent;
-            }
-
-            if (leftCurrentValue != null && leftCurrentValue.Left is SingleValue left)
-            {
-                left.Value += (value.Left as SingleValue)?.Value ?? 0;
-            }
-            else
-            {
-                leftNull = true;
-            }
-
-            DoubleValue rightCurrentValue = value.Parent;
-            while (rightCurrentValue != null && !(rightCurrentValue.Right is SingleValue))
-            {
-                rightCurrentValue = rightCurrentValue.Parent;
-            }
-
-            if (rightCurrentValue != null && rightCurrentValue.Right is SingleValue right)
-            {
-                right.Value += (value.Right as SingleValue)?.Value ?? 0;
-            }
-            else
-            {
-                rightNull = true;
-            }
-            */
-
             var rootNode = value.Parent;
             while (rootNode.Parent != null)
             {
@@ -274,26 +216,6 @@
             {
                 value.Parent.Right = replacement;
             }
-
-            /*
-            if (leftNull)
-            {
-                //value.Parent.Left = new SingleValue((value.Left as SingleValue).Value);
-                value.Parent.Left = new SingleValue(0)
-                {
-                    Parent = value.Parent
-                };
-            }
-            
-            if (rightNull)
-            {
-                //value.Parent.Right = new SingleValue((value.Right as SingleValue).Value);
-                value.Parent.Right = new SingleValue(0)
-                {
-                    Parent = value.Parent
-                };
-            }
-            */
         }
 
         private List<ISnailFishNumber> SingleValuesAsList(DoubleValue root)
@@ -399,47 +321,64 @@
             return false;
         }
 
-        private bool Reduce(DoubleValue doubleValue, int depth = 0)
-        {
-            if (doubleValue.Left is DoubleValue left)
-            {
-                if (Reduce(left, depth + 1))
-                {
-                    return true;
-                }
-            }
-
-            if (doubleValue.Right is DoubleValue right)
-            {
-                if (Reduce(right, depth + 1))
-                {
-                    return true;
-                }
-            }
-
-            if (depth >= 4 && doubleValue.Left is SingleValue && doubleValue.Right is SingleValue)
-            {
-                Explode(doubleValue);
-                return true;
-            }
-
-            if (doubleValue.Left is SingleValue leftSingle && leftSingle.Value > 9)
-            {
-                Split(leftSingle, true);
-                return true;
-            }
-            
-            if (doubleValue.Right is SingleValue rightSingle && rightSingle.Value > 9)
-            {
-                Split(rightSingle, false);
-                return true;
-            }
-
-            return false;
-        }
-
         public override string Part2()
         {
+            string[] inputLines = Input.Split("\r\n");
+
+            // Read input
+            List<DoubleValue> snailFishNumbers = new List<DoubleValue>();
+            foreach (string inputLine in inputLines)
+            {
+                var outerMostValue = new DoubleValue(null);
+                snailFishNumbers.Add(outerMostValue);
+
+                Stack<DoubleValue> inputStack = new Stack<DoubleValue>();
+                Stack<bool> leftSideStack = new Stack<bool>();
+                inputStack.Push(outerMostValue);
+                leftSideStack.Push(true);
+
+                for (int i = 1; i < inputLine.Length; i++)
+                {
+                    if (inputLine[i] == '[')
+                    {
+                        var doubleValue = new DoubleValue(inputStack.Peek());
+
+                        if (leftSideStack.Peek())
+                        {
+                            inputStack.Peek().Left = doubleValue;
+                        }
+                        else
+                        {
+                            inputStack.Peek().Right = doubleValue;
+                        }
+
+                        leftSideStack.Push(true);
+                        inputStack.Push(doubleValue);
+                    }
+                    else if (char.IsDigit(inputLine[i]))
+                    {
+                        if (leftSideStack.Peek())
+                        {
+                            inputStack.Peek().Left = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
+                        }
+                        else
+                        {
+                            inputStack.Peek().Right = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
+                        }
+                    }
+                    else if (inputLine[i] == ',')
+                    {
+                        leftSideStack.Pop();
+                        leftSideStack.Push(false);
+                    }
+                    else if (inputLine[i] == ']')
+                    {
+                        inputStack.Pop();
+                        leftSideStack.Pop();
+                    }
+                }
+            }
+
             return string.Empty;
         }
     }
