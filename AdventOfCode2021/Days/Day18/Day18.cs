@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Tools.Extensions;
 
     public class Day18 : BaseDay
     {
@@ -80,18 +81,18 @@
                     change = TryExplode(total);
                     if (change)
                     {
-                        Console.Write("after explode:  ");
-                        Console.WriteLine(total.ToString());
-                        VerifyTree(total);
+                    //    Console.Write("after explode:  ");
+                    //    Console.WriteLine(total.ToString());
+                    //    VerifyTree(total);
                         continue;
                     }
 
                     change = TrySplit(total);
                     if (change)
                     {
-                        Console.Write("after split:    ");
-                        Console.WriteLine(total.ToString());
-                        VerifyTree(total);
+                        //Console.Write("after split:    ");
+                        //Console.WriteLine(total.ToString());
+                        //VerifyTree(total);
                     }
                 }
 
@@ -323,63 +324,92 @@
 
         public override string Part2()
         {
-            string[] inputLines = Input.Split("\r\n");
+            var inputLines = Input.Split("\r\n").ToList();
 
             // Read input
-            List<DoubleValue> snailFishNumbers = new List<DoubleValue>();
-            foreach (string inputLine in inputLines)
+            long max = inputLines.DifferentCombinations(2).Max(numbers =>
             {
-                var outerMostValue = new DoubleValue(null);
-                snailFishNumbers.Add(outerMostValue);
+                DoubleValue value1 = ParseSnailNumber(numbers.First());
+                DoubleValue value2 = ParseSnailNumber(numbers.Last());
 
-                Stack<DoubleValue> inputStack = new Stack<DoubleValue>();
-                Stack<bool> leftSideStack = new Stack<bool>();
-                inputStack.Push(outerMostValue);
-                leftSideStack.Push(true);
+                var total = Add(value1, value2);
 
-                for (int i = 1; i < inputLine.Length; i++)
+                while (TryExplode(total) || TrySplit(total))
                 {
-                    if (inputLine[i] == '[')
-                    {
-                        var doubleValue = new DoubleValue(inputStack.Peek());
+                }
 
-                        if (leftSideStack.Peek())
-                        {
-                            inputStack.Peek().Left = doubleValue;
-                        }
-                        else
-                        {
-                            inputStack.Peek().Right = doubleValue;
-                        }
+                return CalculateMagnitude(total);
+            });
 
-                        leftSideStack.Push(true);
-                        inputStack.Push(doubleValue);
-                    }
-                    else if (char.IsDigit(inputLine[i]))
+            inputLines.Reverse();
+            long inverseMax = inputLines.DifferentCombinations(2).Max(numbers =>
+            {
+                DoubleValue value1 = ParseSnailNumber(numbers.First());
+                DoubleValue value2 = ParseSnailNumber(numbers.Last());
+
+                var total = Add(value1, value2);
+
+                while (TryExplode(total) || TrySplit(total))
+                {
+                }
+
+                return CalculateMagnitude(total);
+            });
+
+            return (max > inverseMax ? max : inverseMax).ToString();
+        }
+
+        private static DoubleValue ParseSnailNumber(string inputLine)
+        {
+            var root = new DoubleValue(null);
+
+            Stack<DoubleValue> inputStack = new Stack<DoubleValue>();
+            Stack<bool> leftSideStack = new Stack<bool>();
+            inputStack.Push(root);
+            leftSideStack.Push(true);
+
+            for (int i = 1; i < inputLine.Length; i++)
+            {
+                if (inputLine[i] == '[')
+                {
+                    var doubleValue = new DoubleValue(inputStack.Peek());
+
+                    if (leftSideStack.Peek())
                     {
-                        if (leftSideStack.Peek())
-                        {
-                            inputStack.Peek().Left = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
-                        }
-                        else
-                        {
-                            inputStack.Peek().Right = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
-                        }
+                        inputStack.Peek().Left = doubleValue;
                     }
-                    else if (inputLine[i] == ',')
+                    else
                     {
-                        leftSideStack.Pop();
-                        leftSideStack.Push(false);
+                        inputStack.Peek().Right = doubleValue;
                     }
-                    else if (inputLine[i] == ']')
+
+                    leftSideStack.Push(true);
+                    inputStack.Push(doubleValue);
+                }
+                else if (char.IsDigit(inputLine[i]))
+                {
+                    if (leftSideStack.Peek())
                     {
-                        inputStack.Pop();
-                        leftSideStack.Pop();
+                        inputStack.Peek().Left = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
                     }
+                    else
+                    {
+                        inputStack.Peek().Right = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
+                    }
+                }
+                else if (inputLine[i] == ',')
+                {
+                    leftSideStack.Pop();
+                    leftSideStack.Push(false);
+                }
+                else if (inputLine[i] == ']')
+                {
+                    inputStack.Pop();
+                    leftSideStack.Pop();
                 }
             }
 
-            return string.Empty;
+            return root;
         }
     }
 
