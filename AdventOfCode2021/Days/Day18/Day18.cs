@@ -12,68 +12,18 @@
             string[] inputLines = Input.Split("\r\n");
 
             // Read input
-            List<DoubleValue> snailFishNumbers = new List<DoubleValue>();
-            foreach (string inputLine in inputLines)
-            {
-                var outerMostValue = new DoubleValue(null);
-                snailFishNumbers.Add(outerMostValue);
-
-                Stack<DoubleValue> inputStack = new Stack<DoubleValue>();
-                Stack<bool> leftSideStack = new Stack<bool>();
-                inputStack.Push(outerMostValue);
-                leftSideStack.Push(true);
-
-                for (int i = 1; i < inputLine.Length; i++)
-                {
-                    if (inputLine[i] == '[')
-                    {
-                        var doubleValue = new DoubleValue(inputStack.Peek());
-
-                        if (leftSideStack.Peek())
-                        {
-                            inputStack.Peek().Left = doubleValue;
-                        }
-                        else
-                        {
-                            inputStack.Peek().Right = doubleValue;
-                        }
-
-                        leftSideStack.Push(true);
-                        inputStack.Push(doubleValue);
-                    }
-                    else if (char.IsDigit(inputLine[i]))
-                    {
-                        if (leftSideStack.Peek())
-                        {
-                            inputStack.Peek().Left = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
-                        }
-                        else
-                        {
-                            inputStack.Peek().Right = new SingleValue(int.Parse(inputLine[i].ToString()), inputStack.Peek());
-                        }
-                    }
-                    else if (inputLine[i] == ',')
-                    {
-                        leftSideStack.Pop();
-                        leftSideStack.Push(false);
-                    }
-                    else if (inputLine[i] == ']')
-                    {
-                        inputStack.Pop();
-                        leftSideStack.Pop();
-                    }
-                }
-            }
+            List<DoubleValue> snailFishNumbers = inputLines.Select(ParseSnailNumber).ToList();
 
             // Start adding
             DoubleValue total = snailFishNumbers[0];
-            VerifyTree(total);
-            Console.WriteLine(total.ToString());
+            //VerifyTree(total);
+            //Console.WriteLine(total.ToString());
+
             for (int i = 1; i < snailFishNumbers.Count; i++)
             {
                 total = Add(total, snailFishNumbers[i]);
-                Console.Write("After addition: ");
-                Console.WriteLine(total.ToString());
+                //Console.Write("After addition: ");
+                //Console.WriteLine(total.ToString());
 
                 bool change = true;
                 while (change)
@@ -81,23 +31,23 @@
                     change = TryExplode(total);
                     if (change)
                     {
-                    //    Console.Write("after explode:  ");
-                    //    Console.WriteLine(total.ToString());
-                    //    VerifyTree(total);
+                        //Console.Write("after explode:  ");
+                        //Console.WriteLine(total.ToString());
+                        //VerifyTree(total);
                         continue;
                     }
 
                     change = TrySplit(total);
-                    if (change)
-                    {
-                        //Console.Write("after split:    ");
-                        //Console.WriteLine(total.ToString());
-                        //VerifyTree(total);
-                    }
+                    //if (change)
+                    //{
+                    //    Console.Write("after split:    ");
+                    //    Console.WriteLine(total.ToString());
+                    //    VerifyTree(total);
+                    //}
                 }
 
-                Console.Write("After reduction:");
-                Console.WriteLine(total.ToString());
+                //Console.Write("After reduction:");
+                //Console.WriteLine(total.ToString());
             }
 
             Console.WriteLine("Result:");
@@ -107,35 +57,46 @@
             return magnitude.ToString();
         }
 
-        private void VerifyTree(DoubleValue root)
+        public override string Part2()
         {
-            if (root.Parent != null)
+            var inputLines = Input.Split("\r\n").ToList();
+
+            long max = inputLines.DifferentCombinations(2).Max(numbers =>
             {
-                if (root.Parent.Left != root && root.Parent.Right != root)
+                string[] numberArray = numbers.ToArray();
+                
+                // recreate inputs again and again because data is mutable
+                DoubleValue value1 = ParseSnailNumber(numberArray[0]);
+                DoubleValue value2 = ParseSnailNumber(numberArray[1]);
+
+                var total = Add(value1, value2);
+
+                while (TryExplode(total) || TrySplit(total))
                 {
-                    throw new Exception();
                 }
-            }
 
-            if (root.Left.Parent != root)
-            {
-                throw new Exception();
-            }
+                return CalculateMagnitude(total);
+            });
 
-            if (root.Right.Parent != root)
+            inputLines.Reverse();
+            long inverseMax = inputLines.DifferentCombinations(2).Max(numbers =>
             {
-                throw new Exception();
-            }
+                string[] numberArray = numbers.ToArray();
 
-            if (root.Left is DoubleValue left)
-            {
-                VerifyTree(left);
-            }
+                // recreate inputs again and again because data is mutable
+                DoubleValue value1 = ParseSnailNumber(numberArray[0]);
+                DoubleValue value2 = ParseSnailNumber(numberArray[1]);
 
-            if (root.Right is DoubleValue right)
-            {
-                VerifyTree(right);
-            }
+                var total = Add(value1, value2);
+
+                while (TryExplode(total) || TrySplit(total))
+                {
+                }
+
+                return CalculateMagnitude(total);
+            });
+
+            return (max > inverseMax ? max : inverseMax).ToString();
         }
 
         private long CalculateMagnitude(DoubleValue doubleValue)
@@ -185,7 +146,7 @@
                 rootNode = rootNode.Parent;
             }
 
-            List<ISnailFishNumber> singleValues = SingleValuesAsList(rootNode);
+            List<ISnailFishNumber> singleValues = Flatten(rootNode);
             int index = singleValues.IndexOf(value);
             if (index > 0)
             {
@@ -219,7 +180,7 @@
             }
         }
 
-        private List<ISnailFishNumber> SingleValuesAsList(DoubleValue root)
+        private List<ISnailFishNumber> Flatten(DoubleValue root)
         {
             List<ISnailFishNumber> numbers = new List<ISnailFishNumber>();
             numbers.Add(root);
@@ -230,7 +191,7 @@
             }
             else
             {
-                numbers.AddRange(SingleValuesAsList(root.Left as DoubleValue));
+                numbers.AddRange(Flatten(root.Left as DoubleValue));
             }
 
             if (root.Right is SingleValue singleValueRight)
@@ -239,7 +200,7 @@
             }
             else
             {
-                numbers.AddRange(SingleValuesAsList(root.Right as DoubleValue));
+                numbers.AddRange(Flatten(root.Right as DoubleValue));
             }
 
             return numbers;
@@ -322,43 +283,6 @@
             return false;
         }
 
-        public override string Part2()
-        {
-            var inputLines = Input.Split("\r\n").ToList();
-
-            // Read input
-            long max = inputLines.DifferentCombinations(2).Max(numbers =>
-            {
-                DoubleValue value1 = ParseSnailNumber(numbers.First());
-                DoubleValue value2 = ParseSnailNumber(numbers.Last());
-
-                var total = Add(value1, value2);
-
-                while (TryExplode(total) || TrySplit(total))
-                {
-                }
-
-                return CalculateMagnitude(total);
-            });
-
-            inputLines.Reverse();
-            long inverseMax = inputLines.DifferentCombinations(2).Max(numbers =>
-            {
-                DoubleValue value1 = ParseSnailNumber(numbers.First());
-                DoubleValue value2 = ParseSnailNumber(numbers.Last());
-
-                var total = Add(value1, value2);
-
-                while (TryExplode(total) || TrySplit(total))
-                {
-                }
-
-                return CalculateMagnitude(total);
-            });
-
-            return (max > inverseMax ? max : inverseMax).ToString();
-        }
-
         private static DoubleValue ParseSnailNumber(string inputLine)
         {
             var root = new DoubleValue(null);
@@ -411,6 +335,37 @@
 
             return root;
         }
+
+        //private void VerifyTree(DoubleValue root)
+        //{
+        //    if (root.Parent != null)
+        //    {
+        //        if (root.Parent.Left != root && root.Parent.Right != root)
+        //        {
+        //            throw new Exception();
+        //        }
+        //    }
+
+        //    if (root.Left.Parent != root)
+        //    {
+        //        throw new Exception();
+        //    }
+
+        //    if (root.Right.Parent != root)
+        //    {
+        //        throw new Exception();
+        //    }
+
+        //    if (root.Left is DoubleValue left)
+        //    {
+        //        VerifyTree(left);
+        //    }
+
+        //    if (root.Right is DoubleValue right)
+        //    {
+        //        VerifyTree(right);
+        //    }
+        //}
     }
 
     public interface ISnailFishNumber
