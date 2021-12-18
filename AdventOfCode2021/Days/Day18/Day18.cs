@@ -64,33 +64,100 @@
                 }
             }
 
+            /* test exploding
+            foreach (DoubleValue snailFishNumber in snailFishNumbers)
+            {
+                Reduce(snailFishNumber);
+                Console.WriteLine(snailFishNumber.ToString());
+            }
+
+            return string.Empty;
+            */
+
             // Start adding
             DoubleValue total = snailFishNumbers[0];
+            VerifyTree(total);
             Console.WriteLine(total.ToString());
             for (int i = 1; i < snailFishNumbers.Count; i++)
             {
                 total = Add(total, snailFishNumbers[i]);
-                Console.Write("After addition:  ");
+                VerifyTree(total);
+                Console.Write("After addition: ");
                 Console.WriteLine(total.ToString());
 
-                string startString = total.ToString();
-                Reduce(total);
-                Console.Write("After reduction: ");
-                Console.WriteLine(total.ToString());
-
-                while (startString != total.ToString())
+                //string startString = total.ToString();
+                //Reduce(total);
+                //Console.Write("After reduction: ");
+                //Console.WriteLine(total.ToString());
+                bool change = true;
+                while (change)
                 {
-                    startString = total.ToString();
-                    Reduce(total);
-                    Console.Write("After reduction: ");
-                    Console.WriteLine(total.ToString());
+                    change = TryExplode(total);
+                    if (change)
+                    {
+                        Console.Write("after explode:  ");
+                        Console.WriteLine(total.ToString());
+                        VerifyTree(total);
+                        continue;
+                    }
+
+                    change = TrySplit(total);
+                    if (change)
+                    {
+                        Console.Write("after split:    ");
+                        Console.WriteLine(total.ToString());
+                        VerifyTree(total);
+                    }
                 }
+
+                /*
+                while (Reduce(total))
+                {
+                    //startString = total.ToString();
+                    //Console.Write("After reduction:");
+                    //Console.WriteLine(total.ToString());
+                }
+                */
+                Console.Write("After reduction:");
+                Console.WriteLine(total.ToString());
             }
 
+            Console.WriteLine("Result:");
             Console.WriteLine(total.ToString());
 
             long magnitude = CalculateMagnitude(total);
             return magnitude.ToString();
+        }
+
+        private void VerifyTree(DoubleValue root)
+        {
+            if (root.Parent != null)
+            {
+                if (root.Parent.Left != root && root.Parent.Right != root)
+                {
+                    throw new Exception();
+                }
+            }
+
+            if (root.Left.Parent != root)
+            {
+                throw new Exception();
+            }
+
+            if (root.Right.Parent != root)
+            {
+                throw new Exception();
+            }
+
+            if (root.Left is DoubleValue left)
+            {
+                VerifyTree(left);
+            }
+
+            if (root.Right is DoubleValue right)
+            {
+                VerifyTree(right);
+            }
         }
 
         private long CalculateMagnitude(DoubleValue doubleValue)
@@ -134,6 +201,7 @@
 
         private void Explode(DoubleValue value)
         {
+            /*
             bool leftNull = false;
             bool rightNull = false;
 
@@ -166,14 +234,45 @@
             {
                 rightNull = true;
             }
+            */
 
+            var rootNode = value.Parent;
+            while (rootNode.Parent != null)
+            {
+                rootNode = rootNode.Parent;
+            }
+
+            List<ISnailFishNumber> singleValues = SingleValuesAsList(rootNode);
+            int index = singleValues.IndexOf(value);
+            if (index > 0)
+            {
+                for (int i = index - 1; i >= 0; i--)
+                {
+                    if (singleValues[i] is SingleValue singleValue)
+                    {
+                        singleValue.Value += (value.Left as SingleValue)?.Value ?? 0;
+                        break;
+                    }
+                }
+
+                for (int i = index + 3; i < singleValues.Count; i++)
+                {
+                    if (singleValues[i] is SingleValue singleValue)
+                    {
+                        singleValue.Value += (value.Right as SingleValue)?.Value ?? 0;
+                        break;
+                    }
+                }
+            }
+
+            var replacement = new SingleValue(0, value.Parent);
             if (value == value.Parent.Left)
             {
-                value.Parent.Left = new SingleValue(0, value.Parent);
+                value.Parent.Left = replacement;
             }
             else
             {
-                value.Parent.Right = new SingleValue(0, value.Parent);
+                value.Parent.Right = replacement;
             }
 
             /*
@@ -197,13 +296,38 @@
             */
         }
 
+        private List<ISnailFishNumber> SingleValuesAsList(DoubleValue root)
+        {
+            List<ISnailFishNumber> numbers = new List<ISnailFishNumber>();
+            numbers.Add(root);
+
+            if (root.Left is SingleValue singleValueLeft)
+            {
+                numbers.Add(singleValueLeft);
+            }
+            else
+            {
+                numbers.AddRange(SingleValuesAsList(root.Left as DoubleValue));
+            }
+
+            if (root.Right is SingleValue singleValueRight)
+            {
+                numbers.Add(singleValueRight);
+            }
+            else
+            {
+                numbers.AddRange(SingleValuesAsList(root.Right as DoubleValue));
+            }
+
+            return numbers;
+        }
+
         private void Split(SingleValue value, bool isLeft)
         {
-            var splitValue = new DoubleValue(value.Parent)
-            {
-                Left = new SingleValue(value.Value / 2, value.Parent),
-                Right = new SingleValue(value.Value / 2 + value.Value % 2, value.Parent)
-            };
+            var splitValue = new DoubleValue(value.Parent);
+
+            splitValue.Left = new SingleValue(value.Value / 2, splitValue);
+            splitValue.Right = new SingleValue(value.Value / 2 + value.Value % 2, splitValue);
 
             if (isLeft)
             {
@@ -215,31 +339,103 @@
             }
         }
 
-        private void Reduce(DoubleValue doubleValue, int depth = 0)
+        private bool TryExplode(DoubleValue doubleValue, int depth = 0)
         {
             if (depth >= 4 && doubleValue.Left is SingleValue && doubleValue.Right is SingleValue)
             {
                 Explode(doubleValue);
-                return;
+                return true;
             }
 
             if (doubleValue.Left is DoubleValue left)
             {
-                Reduce(left, depth + 1);
-            }
-            else if (doubleValue.Left is SingleValue leftSingle && leftSingle.Value > 9)
-            {
-                Split(leftSingle, true);
+                if (TryExplode(left, depth + 1))
+                {
+                    return true;
+                }
             }
 
             if (doubleValue.Right is DoubleValue right)
             {
-                Reduce(right, depth + 1);
+                if (TryExplode(right, depth + 1))
+                {
+                    return true;
+                }
             }
-            else if (doubleValue.Right is SingleValue rightSingle && rightSingle.Value > 9)
+
+            return false;
+        }
+
+        private bool TrySplit(DoubleValue doubleValue)
+        {
+            if (doubleValue.Left is SingleValue leftSingle && leftSingle.Value > 9)
+            {
+                Split(leftSingle, true);
+                return true;
+            }
+
+            if (doubleValue.Left is DoubleValue left)
+            {
+                if (TrySplit(left))
+                {
+                    return true;
+                }
+            }
+
+            if (doubleValue.Right is SingleValue rightSingle && rightSingle.Value > 9)
             {
                 Split(rightSingle, false);
+                return true;
             }
+
+            if (doubleValue.Right is DoubleValue right)
+            {
+                if (TrySplit(right))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool Reduce(DoubleValue doubleValue, int depth = 0)
+        {
+            if (doubleValue.Left is DoubleValue left)
+            {
+                if (Reduce(left, depth + 1))
+                {
+                    return true;
+                }
+            }
+
+            if (doubleValue.Right is DoubleValue right)
+            {
+                if (Reduce(right, depth + 1))
+                {
+                    return true;
+                }
+            }
+
+            if (depth >= 4 && doubleValue.Left is SingleValue && doubleValue.Right is SingleValue)
+            {
+                Explode(doubleValue);
+                return true;
+            }
+
+            if (doubleValue.Left is SingleValue leftSingle && leftSingle.Value > 9)
+            {
+                Split(leftSingle, true);
+                return true;
+            }
+            
+            if (doubleValue.Right is SingleValue rightSingle && rightSingle.Value > 9)
+            {
+                Split(rightSingle, false);
+                return true;
+            }
+
+            return false;
         }
 
         public override string Part2()
@@ -285,7 +481,7 @@
 
         public override string ToString()
         {
-            return $"[{Left}, {Right}]";
+            return $"[{Left},{Right}]";
         }
 
         /// <inheritdoc />
