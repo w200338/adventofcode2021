@@ -65,6 +65,7 @@
             }
 
             List<Vector3Int> beaconLocations = new List<Vector3Int>(data[0]);
+            /*
             Dictionary<Vector3Int, (Vector3Int, Vector3Int)> relativeDistances = new Dictionary<Vector3Int, (Vector3Int, Vector3Int)>();
             foreach (Vector3Int vector in data[0])
             {
@@ -82,14 +83,50 @@
 
             List<Dictionary<Vector3Int, (Vector3Int, Vector3Int)>> allRelativeDistances = new List<Dictionary<Vector3Int, (Vector3Int, Vector3Int)>>();
             allRelativeDistances.Add(relativeDistances);
+            */
 
             // use scanner 0 as absolute truth
             List<int> scannersToGo = new List<int>(Enumerable.Range(1, data.Count - 1));
+            List<List<Vector3Int>> mappedScanners = new List<List<Vector3Int>>()
+            {
+                data[0]
+            };
+
+            List<Vector3Int> scannerLocations = new List<Vector3Int>();
+            scannerLocations.Add(Vector3Int.Zero);
+
+            HashSet<(int, int)> badCombos = new HashSet<(int, int)>();
 
             while (scannersToGo.Count > 0)
             {
                 for (int i = 0; i < scannersToGo.Count; i++)
                 {
+                    for (int j = 0; j < mappedScanners.Count; j++)
+                    {
+                        if (badCombos.Contains((scannersToGo[i], j)))
+                        {
+                            continue;
+                        }
+
+                        List<Vector3Int> beacons = data[scannersToGo[i]];
+                        Vector3Int offSet = FindOrientation(mappedScanners[j], ref beacons);
+
+                        if (offSet != Vector3Int.Zero)
+                        {
+                            scannerLocations.Add(offSet);
+                            List<Vector3Int> normalizedBeacons = beacons.Select(pos => pos + offSet).ToList();
+                            mappedScanners.Add(normalizedBeacons);
+                            scannersToGo.Remove(scannersToGo[i]);
+                            Console.WriteLine("Scanners to go: " + scannersToGo.Count);
+                            break;
+                        }
+                        else
+                        {
+                            badCombos.Add((scannersToGo[i], j));
+                        }
+                    }
+
+                    /*
                     for (int j = 0; j < allRelativeDistances.Count; j++)
                     {
                         (RotationData, Vector3Int) rotation = FindOrientation(data[1], allRelativeDistances[j]);
@@ -124,14 +161,24 @@
                             break;
                         }
                     }
-
-                    scannersToGo.Remove(scannersToGo[i]);
-                    i--;
+                    */
                 }
             }
 
-            beaconLocations = beaconLocations.Distinct().OrderBy(location => location.X).ToList();
-            return beaconLocations.Count.ToString();
+            int distance = scannerLocations.DifferentCombinations(2)
+                .Max(vectors =>
+                {
+                    Vector3Int[] vector3Ints = vectors.ToArray();
+                    return Vector3Int.DistanceManhattan(vector3Ints[0], vector3Ints[1]);
+                });
+
+            Console.WriteLine("Distance " + distance);
+
+            return mappedScanners
+                .SelectMany(mappedScanner => mappedScanner)
+                .Distinct()
+                .Count()
+                .ToString();
         }
 
         private static Vector3Int FindScannerOffset(List<Vector3Int> data, RotationData rotation, Dictionary<Vector3Int, (Vector3Int, Vector3Int)> relativeDistances)
@@ -156,8 +203,53 @@
             throw new Exception();
         }
 
-        private static (RotationData, Vector3Int) FindOrientation(List<Vector3Int> data, Dictionary<Vector3Int, (Vector3Int, Vector3Int)> relativeDistances)
+        private static Vector3Int FindOrientation(List<Vector3Int> a, ref List<Vector3Int> b)
         {
+            HashSet<Vector3Int> seenRotations = new HashSet<Vector3Int>();
+            for (int xyRot = 0; xyRot < 4; xyRot++)
+            {
+                b = b.Select(point => new Vector3Int(-point.Y, point.X, point.Z)).ToList();
+                for (int yzRot = 0; yzRot < 4; yzRot++)
+                {
+                    b = b.Select(point => new Vector3Int(point.X, -point.Z, point.Y)).ToList();
+                    for (int zxRot = 0; zxRot < 4; zxRot++)
+                    {
+                        b = b.Select(point => new Vector3Int(-point.Z, point.Y, point.X)).ToList();
+                        if (seenRotations.Contains(b[0]))
+                        {
+                            continue;
+                        }
+
+                        seenRotations.Add(b[0]);
+
+                        for (int i = 0; i < a.Count; i++)
+                        {
+                            for (int j = 0; j < b.Count; j++)
+                            {
+                                int found = 0;
+                                Vector3Int offset = a[i] - b[j];
+
+                                for (int k = 0; k < b.Count; k++)
+                                {
+                                    if (a.Contains(b[k] + offset))
+                                    {
+                                        found++;
+                                    }
+                                }
+
+                                if (found >= 12)
+                                {
+                                    return offset;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return Vector3Int.Zero;
+
+            /*
             Vector3Int offset = Vector3Int.Zero;
             for (int i = 0; i < rotations.Length; i++)
             {
@@ -187,6 +279,77 @@
             }
 
             return (null, offset);
+            */
+        }
+
+        private static Vector3Int FindOrientation(List<Vector3Int> data, Dictionary<Vector3Int, (Vector3Int, Vector3Int)> relativeDistances)
+        {
+            Vector3Int offset = Vector3Int.Zero;
+            List<Vector3Int> transformedPositions = data.ToList();
+            for (int xyRot = 0; xyRot < 4; xyRot++)
+            {
+                data = data.Select(point => new Vector3Int(-point.Y, point.X, point.Z)).ToList();
+                for (int yzRot = 0; yzRot < 4; yzRot++)
+                {
+                    for (int zxRot = 0; zxRot < 4; zxRot++)
+                    {
+
+                        int found = 0;
+                        foreach (Vector3Int transformedPosition in transformedPositions)
+                        {
+                            foreach (Vector3Int otherTransformedPosition in transformedPositions)
+                            {
+                                if (transformedPosition != otherTransformedPosition)
+                                {
+                                    if (relativeDistances.ContainsKey(otherTransformedPosition - transformedPosition))
+                                    {
+                                        offset = relativeDistances[otherTransformedPosition - transformedPosition].Item1 - transformedPosition;
+
+                                        found++;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (found >= 12)
+                        {
+                            return offset;
+                        }
+                    }
+                }
+            }
+
+            return Vector3Int.Zero;
+            /*
+            for (int i = 0; i < rotations.Length; i++)
+            {
+                List<Vector3Int> transformedPositions = data.Select(rotations[i].Transform).ToList();
+
+                int found = 0;
+                foreach (Vector3Int transformedPosition in transformedPositions)
+                {
+                    foreach (Vector3Int otherTransformedPosition in transformedPositions)
+                    {
+                        if (transformedPosition != otherTransformedPosition)
+                        {
+                            if (relativeDistances.ContainsKey(otherTransformedPosition - transformedPosition))
+                            {
+                                offset = relativeDistances[otherTransformedPosition - transformedPosition].Item1 - transformedPosition;
+
+                                found++;
+                            }
+                        }
+                    }
+                }
+
+                if (found >= 12)
+                {
+                    return (rotations[i], offset);
+                }
+            }
+
+            return (null, offset);
+            */
         }
 
         public override string Part2()
