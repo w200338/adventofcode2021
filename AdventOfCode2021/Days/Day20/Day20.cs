@@ -13,22 +13,20 @@
             string[] inputLines = Input.Split("\r\n");
 
             string algorithm = inputLines[0];
-            List<Pixel> image = new List<Pixel>();
+            Dictionary<Vector2Int, bool> image = new Dictionary<Vector2Int, bool>();
             RectangleInt bounds = new RectangleInt(Vector2Int.Zero - Vector2Int.One * 3, new Vector2Int(inputLines[3].Length, inputLines.Length - 2) + Vector2Int.One * 3);
 
             for (int y = 2; y < inputLines.Length; y++)
             {
-                image.AddRange(
-                    inputLines[y].Select((c, x) => new Pixel
-                    {
-                        IsOn = c == '#',
-                        Position = new Vector2Int(x, y - 2)
-                    }));
+                for (int x = 0; x < inputLines[y].Length; x++)
+                {
+                    image.Add(new Vector2Int(x, y - 2), inputLines[y][x] == '#');
+                }
             }
 
-            List<Pixel> updatedPixels = new List<Pixel>();
             for (int step = 0; step < 2; step++)
             {
+                Dictionary<Vector2Int, bool> updatedPixels = new Dictionary<Vector2Int, bool>();
                 bounds.Position -= Vector2Int.One;
                 bounds.Size += Vector2Int.One * 2;
 
@@ -36,25 +34,22 @@
                 {
                     for (int x = bounds.Position.X; x <= bounds.Size.X; x++)
                     {
-                        int pixelIndex = ReadPixel(image, new Vector2Int(x, y));
+                        var position = new Vector2Int(x, y);
+                        int pixelIndex = ReadPixel(image, position);
 
-                        updatedPixels.Add(new Pixel
-                        {
-                            Position = new Vector2Int(x, y),
-                            IsOn = algorithm[pixelIndex] == '#'
-                        });
+                        updatedPixels.Add(position, algorithm[pixelIndex] == '#');
 
-                        //Console.Write(algorithm[pixelIndex]);
+                        Console.Write(algorithm[pixelIndex]);
                     }
 
-                    //Console.WriteLine();
+                    Console.WriteLine();
                 }
 
-                //Console.WriteLine();
-                image = updatedPixels.ToList();
+                Console.WriteLine();
+                image = updatedPixels;
             }
 
-            return image.Count(pixel => pixel.IsOn).ToString();
+            return image.Count(pixel => pixel.Value).ToString();
         }
 
         private int ReadPixel(List<Pixel> image, Vector2Int position)
@@ -111,7 +106,7 @@
 
             string algorithm = inputLines[0];
             Dictionary<Vector2Int, bool> image = new Dictionary<Vector2Int, bool>();
-            RectangleInt bounds = new RectangleInt(Vector2Int.Zero - Vector2Int.One * 3, new Vector2Int(inputLines[3].Length, inputLines.Length - 2) + Vector2Int.One * 3);
+            RectangleInt bounds = new RectangleInt(Vector2Int.Zero, new Vector2Int(inputLines[3].Length, inputLines.Length - 2));
 
             for (int y = 2; y < inputLines.Length; y++)
             {
@@ -136,13 +131,13 @@
 
                         updatedPixels.Add(position, algorithm[pixelIndex] == '#');
 
-                        Console.Write(algorithm[pixelIndex]);
+                        //Console.Write(algorithm[pixelIndex]);
                     }
 
-                    Console.WriteLine();
+                    //Console.WriteLine();
                 }
 
-                Console.WriteLine();
+                //Console.WriteLine();
                 image = updatedPixels;
             }
 
