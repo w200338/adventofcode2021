@@ -61,34 +61,6 @@
             return image.Count(pixel => pixel.Value).ToString();
         }
 
-        private int ReadPixel(List<Pixel> image, Vector2Int position)
-        {
-            int output = 0;
-            //string bits = "";
-            for (int i = -1; i <= 1; i++)
-            {
-                for (int j = -1; j <= 1; j++)
-                {
-                    Pixel pixel = image.FirstOrDefault(pixel => pixel.Position == new Vector2Int(position.X + j, position.Y + i));
-
-                    if (pixel == null)
-                    {
-                        output <<= 1;
-                        //bits += '0';
-                    }
-                    else
-                    {
-                        output <<= 1;
-                        output += pixel.IsOn ? 1 : 0;
-                        //bits += pixel.IsOn ? '1' : '0';
-                    }
-                }
-            }
-
-            //var value = Convert.ToInt32(bits, 2);
-            return output;
-        }
-
         private int ReadPixel(Dictionary<Vector2Int, bool> image, Vector2Int position, bool background = false)
         {
             int output = 0;
@@ -147,7 +119,6 @@
                     for (int x = bounds.Position.X; x <= bounds.Size.X; x++)
                     {
                         var position = new Vector2Int(x, y);
-                        //int pixelIndex = ReadPixel(image, position, step % 2 == 1);
                         int pixelIndex = ReadPixel(image, position, background);
 
                         updatedPixels.Add(position, algorithm[pixelIndex] == '#');
@@ -164,12 +135,5 @@
 
             return image.Count(pixel => pixel.Value).ToString();
         }
-    }
-
-    public class Pixel
-    {
-        public Vector2Int Position { get; set; }
-
-        public bool IsOn { get; set; }
     }
 }
