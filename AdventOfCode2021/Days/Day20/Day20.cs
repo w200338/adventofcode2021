@@ -27,18 +27,24 @@
                 new Vector2Int(image.Min(kvp => kvp.Key.X), image.Min(kvp => kvp.Key.Y)),
                 new Vector2Int(image.Max(kvp => kvp.Key.X), image.Max(kvp => kvp.Key.Y)));
 
+            bool background = true;
             for (int step = 0; step < 2; step++)
             {
                 Dictionary<Vector2Int, bool> updatedPixels = new Dictionary<Vector2Int, bool>();
                 bounds.Position -= Vector2Int.One;
                 bounds.Size += Vector2Int.One * 2;
+                
+                if (bounds.Size.X > 90)
+                {
+                    background = !background;
+                }
 
                 for (int y = bounds.Position.Y; y <= bounds.Size.Y; y++)
                 {
                     for (int x = bounds.Position.X; x <= bounds.Size.X; x++)
                     {
                         var position = new Vector2Int(x, y);
-                        int pixelIndex = ReadPixel(image, position);
+                        int pixelIndex = ReadPixel(image, position, background);
 
                         updatedPixels.Add(position, algorithm[pixelIndex] == '#');
 
@@ -124,9 +130,6 @@
                 new Vector2Int(image.Min(kvp => kvp.Key.X), image.Min(kvp => kvp.Key.Y)),
                 new Vector2Int(image.Max(kvp => kvp.Key.X), image.Max(kvp => kvp.Key.Y)));
 
-            //bounds.Position -= Vector2Int.One * 2;
-            //bounds.Size += Vector2Int.One * 4;
-
             bool background = true;
             for (int step = 0; step < 50; step++)
             {
@@ -134,7 +137,10 @@
                 bounds.Position -= Vector2Int.One;
                 bounds.Size += Vector2Int.One * 2;
 
-                background = !background;
+                if (bounds.Size.X > 90)
+                {
+                    background = !background;
+                }
 
                 for (int y = bounds.Position.Y; y <= bounds.Size.Y; y++)
                 {
