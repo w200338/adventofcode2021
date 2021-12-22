@@ -1,6 +1,5 @@
 ﻿namespace AdventOfCode2021.Days.Day22
 {
-    using System;
     using System.Linq;
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
@@ -9,7 +8,7 @@
 
     public class Day22 : BaseDay
     {
-        private Regex coordinateRegex = new Regex(@"(-?\d+)\.\.(-?\d+).*?(-?\d+)\.\.(-?\d+).*?(-?\d+)\.\.(-?\d+)$");
+        private static readonly Regex CoordinateRegex = new Regex(@"(-?\d+)\.\.(-?\d+).*?(-?\d+)\.\.(-?\d+).*?(-?\d+)\.\.(-?\d+)$", RegexOptions.Compiled);
 
         public override string Part1()
         {
@@ -19,7 +18,7 @@
             Dictionary<BeamInt, bool> regionState = new Dictionary<BeamInt, bool>();
             foreach (string inputLine in inputLines)
             {
-                Match match = coordinateRegex.Match(inputLine);
+                Match match = CoordinateRegex.Match(inputLine);
 
                 int xMin = int.Parse(match.Groups[1].Value);
                 int yMin = int.Parse(match.Groups[3].Value);
@@ -65,14 +64,10 @@
         {
             string[] inputLines = Input.Split("\r\n");
 
-            
             List<(BeamInt, bool)> slices = new List<(BeamInt, bool)>();
-            int i = 1;
             foreach (string inputLine in inputLines)
             {
-                Console.WriteLine($"{i++}/{inputLines.Length}");
-
-                Match match = coordinateRegex.Match(inputLine);
+                Match match = CoordinateRegex.Match(inputLine);
 
                 int xMin = int.Parse(match.Groups[1].Value);
                 int yMin = int.Parse(match.Groups[3].Value);
@@ -204,103 +199,16 @@
                 slices = createdSlices;
             }
 
-            /*
-             long total = 0;
-            foreach (BeamInt beam in beams)
-            {
-                if (regionState[beam])
-                {
-                    total += beam.CalculateVolume();
-                }
-            }
-
-            foreach (BeamInt beam in beams.Where(b => !regionState[b]))
-            {
-                // calculate overlap with other beams
-                foreach (BeamInt otherBeam in beams.Where(b => regionState[b]))
-                {
-                    if (IsOverlapping(beam, otherBeam))
-                    {
-                        long volume =
-                            (long)Math.Max(beam.Position.X, otherBeam.Position.X) - Math.Max((beam.Position + beam.Size).X, (otherBeam.Position + otherBeam.Size).X) *
-                            (long)Math.Max(beam.Position.Y, otherBeam.Position.Y) - Math.Max((beam.Position + beam.Size).Y, (otherBeam.Position + otherBeam.Size).Y) *
-                            (long)Math.Max(beam.Position.Z, otherBeam.Position.Z) - Math.Max((beam.Position + beam.Size).Z, (otherBeam.Position + otherBeam.Size).Z);
-
-                        long volume2 =
-                            (long)Math.Min(beam.Position.X, otherBeam.Position.X) - Math.Min((beam.Position + beam.Size).X, (otherBeam.Position + otherBeam.Size).X) *
-                            (long)Math.Min(beam.Position.Y, otherBeam.Position.Y) - Math.Min((beam.Position + beam.Size).Y, (otherBeam.Position + otherBeam.Size).Y) *
-                            (long)Math.Min(beam.Position.Z, otherBeam.Position.Z) - Math.Min((beam.Position + beam.Size).Z, (otherBeam.Position + otherBeam.Size).Z);
-
-                        volume = Math.Abs(volume);
-                        volume2 = Math.Abs(volume2);
-
-                        if (volume2 > volume)
-                        {
-                            total -= volume2;
-                        }
-                        total -= volume;
-                    }
-                }
-            }
-            */
-
             long total = 0;
-            foreach (var slice in slices.Where(slice => slice.Item2))
+            foreach ((BeamInt, bool) slice in slices.Where(slice => slice.Item2))
             {
                 Vector3Int min = slice.Item1.Position;
                 Vector3Int max = slice.Item1.Size;
 
                 total += (long)(max.X - min.X) * (max.Y - min.Y) * (max.Z - min.Z);
-
-                //total += slice.Item1.CalculateVolume();
             }
 
             return total.ToString();
-        }
-
-        private bool IsOverlapping(BeamInt a, BeamInt b)
-        {
-            if (b.IsInRectangle(a.Position))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + new Vector3Int(a.Size.X, 0, 0)))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + new Vector3Int(0, a.Size.Y, 0)))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + new Vector3Int(0, 0, a.Size.Z)))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + new Vector3Int(a.Size.X, a.Size.Y, 0)))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + new Vector3Int(a.Size.X, 0, a.Size.Z)))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + new Vector3Int(0, a.Size.Y, a.Size.Z)))
-            {
-                return true;
-            }
-
-            if (b.IsInRectangle(a.Position + a.Size))
-            {
-                return true;
-            }
-
-            return false;
         }
     }
 }
